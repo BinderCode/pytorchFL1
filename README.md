@@ -1,4 +1,4 @@
-# Use PyTorch with Python and Occlum
+# Install Occlum
 
 This project demonstrates how Occlum enables _unmodified_ [PyTorch](https://pytorch.org/) programs running in SGX enclaves, on the basis of _unmodified_ [Python](https://www.python.org).
 
@@ -15,16 +15,27 @@ Occlum is compatible with glibc-supported Python, we employ miniconda as python 
 Step 1 (on the host): Start an Occlum container
 ```
 docker pull occlum/occlum:0.23.0-ubuntu18.04
-docker run -it --name=pythonDemo --device /dev/sgx/enclave occlum/occlum:0.23.0-ubuntu18.04 bash
+docker run -it --name=pythonDemo --gpus all --device /dev/sgx/enclave occlum/occlum:0.23.0-ubuntu18.04 bash
 ```
 
 Step 2 (in the Occlum container): Download miniconda and install python to prefix position.
 ```
-cd /root/demos/pytorch
+cd /root/demos/pytorchFL
 bash ./install_python_with_conda.sh
 ```
 
-Step 3 (in the Occlum container): Run the sample code on Occlum
+Step 3 Install FL package in SGX
+
+```
+./python-occlum/bin/pip install numpy~=1.21.5 scipy~=1.7.0 Pillow~=9.4.0 matplotlib~=3.4.2 tqdm~=4.61.1 opencv-python~=4.5.3.56 scikit-learn~=0.24.2 colorama~=0.4.4 pykeops~=2.1 pyyaml~=6.0
+```
+
+Install conda
+
+
+
+Step 4 (in the Occlum container): Run the sample code on Occlum
+
 ```
 cd /root/demos/pytorch
 bash ./run_pytorch_on_occlum.sh
