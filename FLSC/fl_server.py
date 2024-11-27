@@ -1,9 +1,4 @@
 #!../../bin/python3
-#存在问题，准确率不上升，loss不下降，怀疑是参数传递和读取出现问题
-#FL+SGX+ORAM+保存csv
-#与原始fl_main比时间大概多了10s检查问题。
-#应该是跑fl_sever  fl_client.py  再继续跑。
-#注意参数从GPU-》CPUhash值会变化  map_location=torch.device('cpu')  会使hash值不对应，解决办法 参数传输前先调用这个map_location=torch.device('cpu')。
 import sys
 from preprocessing.baselines_dataloader import divide_data
 from fed_baselines.server_base import FedServer
@@ -17,70 +12,56 @@ from postprocessing.recorder import Recorder
 from json import JSONEncoder
 import pickle
 import time
-
 import random
-import shutil#oram用到了
+import shutil
 import csv
 import time
-
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from Crypto.Util.Padding import unpad
 import io
-import hashlib      #-----20241116---新增hash验证
-
-os.chdir(sys.path[0])#使用当前目录作为根目录
-print("当前目录是~",sys.path[0])
+import hashlib      
+os.chdir(sys.path[0])
 import torch
-# # 将PyTorch映射到CPU
-# device = torch.device('cpu')
-# # 在加载模型之前设置默认设备
-# torch.set_default_tensor_type(torch.FloatTensor)
-# 树节点类
+
 class TreeNode:
     def __init__(self):
-        self.blocks = [None] * 4  # 初始化4个子块
-# PathORAM 类
+        self.blocks = [None] * 4  
 class WPathORAM:
     def __init__(self, depth, storage_dir):
-        self.depth = depth  # 树的深度
-        self.tree_size = 2 ** (depth + 1) - 1  # 计算树的总节点数
-        self.tree = [TreeNode() for _ in range(self.tree_size)]  # 初始化树节点
-        self.position_map = {}  # 位置映射表
-        self.storage_dir = storage_dir  # 存储目录
-        #self.reset_storage()  # 重置存储
+        self.depth = depth  
+        self.tree_size = 2 ** (depth + 1) - 1 
+        self.tree = [TreeNode() for _ in range(self.tree_size)]
+        self.position_map = {} 
+        self.storage_dir = storage_dir  
 
-    # 重置存储
     def reset_storage(self):
-        shutil.rmtree(self.storage_dir, ignore_errors=True)  # 删除现有存储
-        os.makedirs(self.storage_dir, exist_ok=True)  # 创建存储目录
+        shutil.rmtree(self.storage_dir, ignore_errors=True) 
+        os.makedirs(self.storage_dir, exist_ok=True) 
         for i in range(self.tree_size):
             node_path = os.path.join(self.storage_dir, str(i))
             os.makedirs(node_path, exist_ok=True)
-            for j in range(1, 5):  # 为每个子块创建文件夹
+            for j in range(1, 5): 
                 os.makedirs(os.path.join(node_path, str(j)), exist_ok=True)
         print("Storage reset completed.")
 
-    # 获取从叶子节点到根节点的路径
     def _get_path(self, leaf):
-        path = []  # 路径列表
+        path = []  
         node_idx = leaf
         while node_idx > 0:
             path.append(node_idx)
-            node_idx = (node_idx - 1) // 2  # 计算父节点索引
+            node_idx = (node_idx - 1) // 2 
         path.append(0)  # 包含根节点
         print(f"Path for leaf {leaf}: {path}")
         return path
 
-    # 获取随机叶子节点
     def random_leaf(self):
-        leaf_start = 2 ** self.depth - 1  # 叶子节点起始索引
-        leaf_end = self.tree_size - 1  # 叶子节点结束索引
-        leaf = random.randint(leaf_start, leaf_end)  # 返回随机叶子节点
+        leaf_start = 2 ** self.depth - 1  
+        leaf_end = self.tree_size - 1  
+        leaf = random.randint(leaf_start, leaf_end)  
         print(f"Random leaf chosen: {leaf}")
         return leaf
 
-    # 写入数据块
     def accesswrite(self,new_data,filename):
         self.reset_storage()  # 重置存储
         # 清空位置映射表（如果需要每次写入前清空）
@@ -347,6 +328,8 @@ else:
         'H1':H1
         }
     PM_server=encrypt_file(positon_to_save, key)
+    if not os.path.exists("/host/TTP"): 
+        os.makedirs("/host/TTP")
     FiPMsavename = "TTP/"+f'F{current_round+1}_PM'
 
     torch.save(PM_server, "/host/"+FiPMsavename)#保存位置--------------修改PM存储位置  修改为TTP  进行模拟
