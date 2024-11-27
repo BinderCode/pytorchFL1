@@ -34,7 +34,7 @@ Step 4 Install FL package in SGX
 ./python-occlum/bin/pip install torch~=2.1.0 torchvision~=0.16.0 numpy~=1.21.5 scipy~=1.7.0 Pillow~=9.4.0 matplotlib~=3.4.2 tqdm~=4.61.1 opencv-python~=4.5.3.56 scikit-learn~=0.24.2 colorama~=0.4.4 pykeops~=2.1 pyyaml~=6.0 pycryptodome
 ```
 
-Step 5 Install anaconda3 in docker
+Step 5 Install Anaconda in your docker
 
 Refer to [Anaconda | The Operating System for AI](https://www.anaconda.com/)
 
@@ -48,7 +48,7 @@ conda install torch~=2.1.0 torchvision~=0.16.0 numpy~=1.21.5 scipy~=1.7.0 Pillow
 
 Step 7 copy "occlum_instance1/FLSC“  to /root/demos/python-occlumocclum_instance/
 
-`cp -r ~/demos/pytorchFL1occlum_instance1/FLSC/ ~/demos/pytorchFL1occlum_instance/`
+`cp -r ~/demos/pytorchFL1/occlum_instance1/FLSC/ ~/demos/pytorchFL1/occlum_instance/`
 
 ## Run Binder
 
