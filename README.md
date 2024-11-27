@@ -12,7 +12,7 @@ docker pull occlum/occlum:0.29.3-ubuntu20.04
 docker run -it --name=Binder --gpus all --device /dev/sgx/enclave occlum/occlum:0.29.3-ubuntu20.04 bash
 ```
 
-Step 2  Copy pytorchFL1 to directory  `cd /root/demos/`
+Step 2  Copy **pytorchFL1** to directory  `cd /root/demos/`
 
 ```
 docker cp ./pytorchFL1.zip yourdocker:/root/demos/
@@ -39,6 +39,12 @@ Step 4 Install anaconda3 in docker
 Refer to [Anaconda | The Operating System for AI](https://www.anaconda.com/)
 
 Step 5 Install FL environments in anaconda3 
+
+```
+conda create -n your-conda-name
+source activate your-conda-name
+conda install 
+```
 
 
 
