@@ -285,7 +285,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             CiPMsavename = "TTP/"+f'C{global_round + 1}_PM'
             if os.path.exists('/host/'+CiPMsavename):
                 time.sleep(0.5)
-                ctos_position = torch.load('/host/'+CiPMsavename)#get PM  ../ctosfile/14/ctosflmodel.pt
+                ctos_position = torch.load('/host/'+CiPMsavename)#get PM 
                 ctos_position = decrypt_file(ctos_position, received_key) 
                 A1=ctos_position['serial_number']
                 H2=ctos_position['H2']
@@ -331,7 +331,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             elif config["client"]["fed_algo"] == 'FedProx':
                 fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i])
             elif config["client"]["fed_algo"] == 'FedNova':
-                fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i])
+                fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i], all_coeff[i], all_norm_grad[i])
             i=i+1    
 
         fed_server.select_clients()
