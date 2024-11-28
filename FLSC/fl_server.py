@@ -112,7 +112,7 @@ class WPathORAM:
                         print(f"Read {'real' if node_idx == leaf and idx == block_idx else 'fake'} data from {block_path}")
                         if node_idx == leaf and idx == block_idx:
                             data_block = data 
-                            real_block_volume_serial_number = volume_serial_number  # 保存真实数据块的卷号
+                            real_block_volume_serial_number = volume_serial_number 
         if data_block is None:
             raise Exception("Data block not found")
         return data_block, real_block_volume_serial_number
@@ -155,8 +155,7 @@ def get_volume_serial_number(path):
     volume_info = os.stat(path)
     return volume_info.st_dev+volume_info.st_ino  
 def load_checkpoint():  #SGX reload
-    files = [f for f in os.listdir('/host/TTP/') if f.startswith('F') and f.endswith('_PM')]  #SGX内要改路径
-    print("Fi_files==",files)
+    files = [f for f in os.listdir('/host/TTP/') if f.startswith('F') and f.endswith('_PM')] 
     if not files:
         return 0, None, None  
     latest_file = sorted(files, key=lambda x: int(x[1:].split('_')[0]), reverse=True)[0]
@@ -164,7 +163,6 @@ def load_checkpoint():  #SGX reload
     PM_server = torch.load(os.path.join('/host/TTP/', latest_file))     
     PM_server = decrypt_file(PM_server, key)
     file_path = PM_server['file_path']  
-    print('file_path=',file_path)
     fi_files = [f for f in os.listdir(file_path) if f.startswith('F')]
     if not fi_files:
         return 0, None, None  
@@ -245,7 +243,7 @@ else:
             }
 
     model_save_directory = '/host/stocfile'  #result
-    if not os.path.exists(model_save_directory):  #  
+    if not os.path.exists(model_save_directory):  
         os.makedirs(model_save_directory)
     oram = WPathORAM(depth=3, storage_dir=model_save_directory)
     H1=get_model_hash(data_to_save)   
@@ -254,7 +252,6 @@ else:
     file_path_Fi = f'F{current_round+1}'
     position_map = oram.accesswrite(Fi,file_path_Fi) 
     file_path = os.path.join(model_save_directory, str(position_map[file_path_Fi][0]), str(position_map[file_path_Fi][1]))
-    print("file_path=",file_path)
     serial_number = get_volume_serial_number(os.path.join(file_path,str(os.listdir(file_path)[0])))
     positon_to_save = {
         'file_path': file_path,
@@ -283,7 +280,6 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
                 time.sleep(0.5)
                 ctos_position = torch.load('/host/'+CiPMsavename)#get PM  ../ctosfile/14/ctosflmodel.pt
                 ctos_position = decrypt_file(ctos_position, received_key) 
-                print("ctos_position=",ctos_position)
                 A1=ctos_position['serial_number']
                 H2=ctos_position['H2']
                 file_path_Ci=f'C{global_round + 1}'
@@ -376,14 +372,11 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             os.makedirs(model_save_directory)
         oram = WPathORAM(depth=3, storage_dir=model_save_directory) 
         H1=get_model_hash(data_to_save) 
-        print("server到client的Fi哈希值=-----",H1)
         Fi=encrypt_file(data_to_save, key) 
         time.sleep(0.2)
         file_path_Fi = f'F{global_round + 2}'
         position_map = oram.accesswrite(Fi,file_path_Fi) 
-        print("position_map=",position_map)
         file_path = os.path.join(model_save_directory, str(position_map[file_path_Fi][0]), str(position_map[file_path_Fi][1]))
-        print("file_path=",file_path)
         serial_number = get_volume_serial_number(os.path.join(file_path,str(os.listdir(file_path)[0])))
         encrypt_file(file_path, key)
         positon_to_save = {

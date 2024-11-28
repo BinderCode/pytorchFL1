@@ -47,7 +47,6 @@ class WPathORAM:
             path.append(node_idx)
             node_idx = (node_idx - 1) // 2 
         path.append(0) 
-        print(f"Path for leaf {leaf}: {path}")
         return path
 
     def random_leaf(self):
@@ -211,8 +210,6 @@ def fed_run():
                 time.sleep(0.1)
                 stoc_position1= torch.load('../'+FiPMsavename)
                 stoc_position=decrypt_file(stoc_position1, received_key)
-                print("stoc_position=",stoc_position)
-                print(stoc_position['file_path'])
                 A1=stoc_position['serial_number']
                 H1=stoc_position['H1']
                 file_path_Fi = f'F{global_round + 1}'
