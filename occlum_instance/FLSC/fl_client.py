@@ -301,9 +301,7 @@ def fed_run():
         H2=get_model_hash(data_to_save)
         file_path_Ci = f'C{global_round + 1}'
         position_map = oram.accesswrite(Ci,file_path_Ci) 
-        print("position_map=",position_map)
         file_path = os.path.join(model_save_directory, str(position_map[file_path_Ci][0]), str(position_map[file_path_Ci][1])) #输出存储路径改
-        print("file_path=",file_path)
         serial_number = get_volume_serial_number(os.path.join(file_path,str(os.listdir(file_path)[0])))
         positon_to_save = {
             'file_path': file_path,

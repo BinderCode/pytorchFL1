@@ -155,16 +155,14 @@ def get_volume_serial_number(path):
     volume_info = os.stat(path)
     return volume_info.st_dev+volume_info.st_ino  
 def load_checkpoint():  #SGX reload
-    files = [f for f in os.listdir('/host/') if f.startswith('F') and f.endswith('_PM')]  #SGX内要改路径
+    files = [f for f in os.listdir('/host/TTP/') if f.startswith('F') and f.endswith('_PM')]  #SGX内要改路径
     print("Fi_files==",files)
     if not files:
         return 0, None, None  
     latest_file = sorted(files, key=lambda x: int(x[1:].split('_')[0]), reverse=True)[0]
     global_round = int(latest_file[1:].split('_')[0]) -1 
-    PM_server = torch.load(os.path.join('/host/', latest_file))     
+    PM_server = torch.load(os.path.join('/host/TTP/', latest_file))     
     PM_server = decrypt_file(PM_server, key)
-    print('PM_server=',PM_server)
-
     file_path = PM_server['file_path']  
     print('file_path=',file_path)
     fi_files = [f for f in os.listdir(file_path) if f.startswith('F')]
@@ -174,7 +172,6 @@ def load_checkpoint():  #SGX reload
     with open(fi_file_path, 'rb') as f:
         Fi = f.read()
     data_to_save = decrypt_file(Fi, key)
-    print("重加载的global_round=",global_round)
     return global_round, data_to_save, file_path
 json_types = (list, dict, str, int, float, bool, type(None))
 
@@ -248,16 +245,14 @@ else:
             }
 
     model_save_directory = '/host/stocfile'  #result
-    if not os.path.exists(model_save_directory):  #  res_root: "results"   ORAM模型保存在results文件夹下
+    if not os.path.exists(model_save_directory):  #  
         os.makedirs(model_save_directory)
-    oram = WPathORAM(depth=3, storage_dir=model_save_directory) #初始化ORAM
-    H1=get_model_hash(data_to_save)                 #获取模型hash值
-    print("H1在server中的hash===",H1)
-    Fi=encrypt_file(data_to_save, key)              #加密
+    oram = WPathORAM(depth=3, storage_dir=model_save_directory)
+    H1=get_model_hash(data_to_save)   
+    Fi=encrypt_file(data_to_save, key)         
     time.sleep(0.1)
     file_path_Fi = f'F{current_round+1}'
-    position_map = oram.accesswrite(Fi,file_path_Fi)  # 写入数据
-    print("position_map=",position_map)
+    position_map = oram.accesswrite(Fi,file_path_Fi) 
     file_path = os.path.join(model_save_directory, str(position_map[file_path_Fi][0]), str(position_map[file_path_Fi][1]))
     print("file_path=",file_path)
     serial_number = get_volume_serial_number(os.path.join(file_path,str(os.listdir(file_path)[0])))
