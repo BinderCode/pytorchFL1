@@ -34,7 +34,6 @@ class WPathORAM:
         self.tree = [TreeNode() for _ in range(self.tree_size)]
         self.position_map = {} 
         self.storage_dir = storage_dir  
-
     def reset_storage(self):
         shutil.rmtree(self.storage_dir, ignore_errors=True) 
         os.makedirs(self.storage_dir, exist_ok=True) 
@@ -44,95 +43,67 @@ class WPathORAM:
             for j in range(1, 5): 
                 os.makedirs(os.path.join(node_path, str(j)), exist_ok=True)
         print("Storage reset completed.")
-
     def _get_path(self, leaf):
         path = []  
         node_idx = leaf
         while node_idx > 0:
             path.append(node_idx)
             node_idx = (node_idx - 1) // 2 
-        path.append(0)  # 包含根节点
+        path.append(0)
         print(f"Path for leaf {leaf}: {path}")
         return path
-
     def random_leaf(self):
         leaf_start = 2 ** self.depth - 1  
         leaf_end = self.tree_size - 1  
         leaf = random.randint(leaf_start, leaf_end)  
         print(f"Random leaf chosen: {leaf}")
         return leaf
-
     def accesswrite(self,new_data,filename):
-        self.reset_storage()  # 重置存储
-        # 清空位置映射表（如果需要每次写入前清空）
+        self.reset_storage() 
         self.position_map.clear()
-        # 随机选择该节点中的一个数据块
         chosen_block_idx = random.randint(1, 4)
-        # 如果文件名不在位置映射表中，为其分配一个随机叶子节点
         if filename not in self.position_map:
             self.position_map[filename] = (self.random_leaf(), chosen_block_idx)
-
         leaf, block_idx = self.position_map[filename]
         print(f"Position map: {self.position_map}")
-        path = self._get_path(leaf)  # 获取从叶子节点到根节点的路径
-        # 随机选择路径中的一个节点
+        path = self._get_path(leaf) 
         chosen_node_idx = random.choice(path)
         print(f"Chosen node for real data: {chosen_node_idx}, block: {chosen_block_idx}")
-        # 更新position_map为真实写入位置
         self.position_map[filename] = (chosen_node_idx, chosen_block_idx)
-        # 写入数据到路径上的每个节点
         for node_idx in path:
             node_path = os.path.join(self.storage_dir, str(node_idx))
-
             for idx in range(1, 5):
                 if node_idx == chosen_node_idx and idx == chosen_block_idx:
-                    # 写入真实数据
                     block_path = os.path.join(node_path, str(idx), filename)
                     data_to_write = new_data
                     print(f"Writing real data to {block_path}")
                 else:
-                    # 写入伪数据
                     block_path = os.path.join(node_path, str(idx), f'fake_data_block_{filename}')
                     data_to_write = os.urandom(len(new_data))
                     print(f"Writing fake data to {block_path}")
-
                 with open(block_path, 'wb') as f:
                     f.write(data_to_write)
-
-        # 返回位置映射表，包含文件名和对应的叶子节点位置及子块编号
         return self.position_map
-
     #read data
     def accessread(self, position_map, filename):
-        # 根据filename设置存储路径
         if filename.startswith('C'):
             storage_dir = '/host/ctosfile'
         elif filename.startswith('F'):
             storage_dir = '/host/stocfile'
         else:
             raise ValueError("Invalid filename provided. Must be 'Ci' or 'Fi'.")
-
-        # 获取文件路径
         file_path = position_map['file_path']
-        
-        # 提取叶子节点和块索引
         path_parts = file_path.split('/')
-        leaf = int(path_parts[-2])  # 获取倒数第二部分作为叶子节点
-        block_idx = int(path_parts[-1])  # 获取最后一部分作为块索引
-
-        # 获取从叶子节点到根节点的路径
+        leaf = int(path_parts[-2])  
+        block_idx = int(path_parts[-1]) 
         path = self._get_path(leaf)
-
         data_block = None
-        real_block_volume_serial_number = None  # 存储真实数据块的卷号
-        all_volume_serial_numbers = []  # 储存所有访问过的块的卷号，包括虚拟和真实
-
-        # 读取路径上的每个节点数据块
+        real_block_volume_serial_number = None
+        all_volume_serial_numbers = []  
         for node_idx in path:
-            node_path = os.path.join(storage_dir, str(node_idx))  # 使用动态设置的存储路径
-            for idx in range(1, 5):  # 读取所有子块
+            node_path = os.path.join(storage_dir, str(node_idx))
+            for idx in range(1, 5):
                 block_path = os.path.join(node_path, str(idx), filename if node_idx == leaf and idx == block_idx else f'fake_data_block_{filename}')
-                # 获取每个块的卷号，包括虚拟块
                 volume_serial_number = get_volume_serial_number(block_path)
                 all_volume_serial_numbers.append(volume_serial_number)
                 if os.path.exists(block_path):
@@ -140,99 +111,71 @@ class WPathORAM:
                         data = f.read()
                         print(f"Read {'real' if node_idx == leaf and idx == block_idx else 'fake'} data from {block_path}")
                         if node_idx == leaf and idx == block_idx:
-                            data_block = data  # 真实数据块
+                            data_block = data 
                             real_block_volume_serial_number = volume_serial_number  # 保存真实数据块的卷号
-
         if data_block is None:
             raise Exception("Data block not found")
-
-        # 返回真实数据块和它的卷号
         return data_block, real_block_volume_serial_number
 
-def get_model_hash(model_weights):  #--20241116---新加
-    """
-    计算给定字典数据（模型权重）的哈希值。
-    参数:    model_weights (dict): 模型的权重字典。
-    返回:    str: 模型哈希值的十六进制字符串表示。
-    """
-    # 检查输入是否为字典
+def get_model_hash(model_weights):
     if not isinstance(model_weights, dict):
-        raise ValueError("输入数据必须是一个字典类型")
-    # 将模型的权重序列化为字节流
+        raise ValueError("Input must be a dict")
     buffer = io.BytesIO()
     torch.save(model_weights, buffer)
     model_weights_bytes = buffer.getvalue()
-    # 计算模型的SHA-256哈希值
     model_hash = hashlib.sha256(model_weights_bytes).hexdigest()
     return model_hash
 
-def encrypt_file(data, key):
-    # 将数据保存到一个字节流中
+def encrypt_file(data, key):#AES encrypt
     buffer = io.BytesIO()
     torch.save(data, buffer)
     serialized_data = buffer.getvalue()
-    
-    # 创建cipher对象并加密
     cipher = AES.new(key, AES.MODE_CBC)
     encrypted_data = cipher.encrypt(pad(serialized_data, AES.block_size))
-    
-    # 返回加密数据和初始化向量
     return cipher.iv + encrypted_data
 
-def decrypt_file(input_data, key):
-    # 检查输入数据类型并读取加密内容
+def decrypt_file(input_data, key):#AES decrypt
     if isinstance(input_data, str) and os.path.exists(input_data):
-        # 当输入是文件路径并且文件存在时，从文件读取加密数据
         with open(input_data, 'rb') as file:
             encrypted_data = file.read()
     elif isinstance(input_data, bytes):
-        # 当输入直接是字节串时，使用字节串作为加密数据
         encrypted_data = input_data
     else:
         raise ValueError("Input must be a valid file path or bytes object containing encrypted data.")
-
-    # 提取IV和加密内容
     iv = encrypted_data[:16]
     encrypted_content = encrypted_data[16:]
-
-    # 创建cipher对象并解密
     cipher = AES.new(key, AES.MODE_CBC, iv)
     decrypted_data = unpad(cipher.decrypt(encrypted_content), AES.block_size)
-
-    # 使用torch.load反序列化数据到字典，并映射到CPU
     buffer = io.BytesIO(decrypted_data)
     return torch.load(buffer, map_location=torch.device('cpu'))
 
-key = b'v \xf35$\x90{\xbd-\xa2v\xc3\xbf\xb0\xf3\xa3' #密钥
-received_key = b'v \xf35$\x90{\xbd-\xa2v\xc3\xbf\xb0\xf3\xa3'  # 此处填入接收到的密钥
-
-def get_volume_serial_number(path):#获取卷号--改
+key = b'v \xf35$\x90{\xbd-\xa2v\xc3\xbf\xb0\xf3\xa3' #key
+received_key = b'v \xf35$\x90{\xbd-\xa2v\xc3\xbf\xb0\xf3\xa3'  
+def get_volume_serial_number(path):
     volume_info = os.stat(path)
-    return volume_info.st_dev+volume_info.st_ino   #二者相加防止克隆，防止移动文件夹  
-
-def load_checkpoint():  #检查是否断电
+    return volume_info.st_dev+volume_info.st_ino  
+def load_checkpoint():  #SGX reload
     files = [f for f in os.listdir('/host/') if f.startswith('F') and f.endswith('_PM')]  #SGX内要改路径
     print("Fi_files==",files)
     if not files:
-        return 0, None, None  # 没有找到 Fi_PM 文件，返回轮次为 0
+        return 0, None, None  
     latest_file = sorted(files, key=lambda x: int(x[1:].split('_')[0]), reverse=True)[0]
-    global_round = int(latest_file[1:].split('_')[0]) -1 #获取轮次
-    PM_server = torch.load(os.path.join('/host/', latest_file))     #SGX内要改路径
+    global_round = int(latest_file[1:].split('_')[0]) -1 
+    PM_server = torch.load(os.path.join('/host/', latest_file))     
     PM_server = decrypt_file(PM_server, key)
     print('PM_server=',PM_server)
 
-    file_path = PM_server['file_path']  #能读出来
+    file_path = PM_server['file_path']  
     print('file_path=',file_path)
     fi_files = [f for f in os.listdir(file_path) if f.startswith('F')]
     if not fi_files:
-        return 0, None, None  # 没有找到 Fi 文件，返回轮次为 0
+        return 0, None, None  
     fi_file_path = os.path.join(file_path, fi_files[0])
     with open(fi_file_path, 'rb') as f:
         Fi = f.read()
     data_to_save = decrypt_file(Fi, key)
     print("重加载的global_round=",global_round)
     return global_round, data_to_save, file_path
-
 json_types = (list, dict, str, int, float, bool, type(None))
 
 class PythonObjectEncoder(JSONEncoder):
@@ -252,16 +195,12 @@ with open("config/test_config.yaml", "r") as yaml_file:
         config = yaml.safe_load(yaml_file)
     except yaml.YAMLError as exc:
         print(exc)
-#根据客户端数量划分数据集
+
 trainset_config, testset = divide_data(num_client=config["system"]["num_client"], num_local_class=config["system"]["num_local_class"], dataset_name=config["system"]["dataset"],
                                         i_seed=config["system"]["i_seed"])   
-
-pbar = tqdm(range(config["system"]["num_round"]))  #迭代次数
-# 加载断点续练状态   如过不需要重加载  那么就直接把current_round=0就好
+pbar = tqdm(range(config["system"]["num_round"]))
 current_round, data_to_save, file_path = load_checkpoint()
-#current_round=0
 if current_round > 0:
-    # 如果存在断点续练状态，使用加载的状态进行初始化
     if config["client"]["fed_algo"] == 'FedAvg' or config["client"]["fed_algo"] == 'FedProx' or config["client"]["fed_algo"] == 'FedNova':
         fed_server = FedServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
         fed_server.load_testset(testset)
@@ -271,15 +210,15 @@ if current_round > 0:
         fed_server.load_testset(testset)
         fed_server.state_dict().update(data_to_save['global_state_dict'])
         fed_server.scv.load_state_dict(data_to_save['scv_state'])
-    #------------------------------重新初始化oram
+
     model_save_directory = '/host/stocfile'  #result
-    if not os.path.exists(model_save_directory):  #  res_root: "results"   ORAM模型保存在results文件夹下
+    if not os.path.exists(model_save_directory):  #  res_root: "results"  
         os.makedirs(model_save_directory)
-    oram = WPathORAM(depth=3, storage_dir=model_save_directory) #初始化ORAM
+    oram = WPathORAM(depth=3, storage_dir=model_save_directory) #init ORAM
 else:    
     if config["client"]["fed_algo"] == 'FedAvg':
         fed_server = FedServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
-        fed_server.load_testset(testset)        #加载测试集到服务器: 服务器加载测试数据集。  优化代码  if到上面
+        fed_server.load_testset(testset)        
         global_state_dict = fed_server.state_dict()
         data_to_save = {
             'global_state_dict': global_state_dict,
@@ -287,7 +226,7 @@ else:
     elif config["client"]["fed_algo"] == 'SCAFFOLD':
         fed_server = ScaffoldServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
         scv_state = fed_server.scv.state_dict()
-        fed_server.load_testset(testset)        #加载测试集到服务器: 服务器加载测试数据集。  优化代码  if到上面
+        fed_server.load_testset(testset)       
         global_state_dict = fed_server.state_dict()
         data_to_save = {
             'global_state_dict': global_state_dict,
@@ -295,19 +234,19 @@ else:
             }
     elif config["client"]["fed_algo"] == 'FedProx':
         fed_server = FedServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
-        fed_server.load_testset(testset)        #加载测试集到服务器: 服务器加载测试数据集。  优化代码  if到上面
+        fed_server.load_testset(testset)        
         global_state_dict = fed_server.state_dict()
         data_to_save = {
             'global_state_dict': global_state_dict,
             }
     elif config["client"]["fed_algo"] == 'FedNova':
         fed_server = FedNovaServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
-        fed_server.load_testset(testset)        #加载测试集到服务器: 服务器加载测试数据集。  优化代码  if到上面
+        fed_server.load_testset(testset)        
         global_state_dict = fed_server.state_dict()
         data_to_save = {
             'global_state_dict': global_state_dict,
             }
-    #----------------初始化server ORAM 写入   model-->position+物理位置；
+
     model_save_directory = '/host/stocfile'  #result
     if not os.path.exists(model_save_directory):  #  res_root: "results"   ORAM模型保存在results文件夹下
         os.makedirs(model_save_directory)
@@ -331,14 +270,12 @@ else:
     if not os.path.exists("/host/TTP"): 
         os.makedirs("/host/TTP")
     FiPMsavename = "TTP/"+f'F{current_round+1}_PM'
-
-    torch.save(PM_server, "/host/"+FiPMsavename)#保存位置--------------修改PM存储位置  修改为TTP  进行模拟
-
+    torch.save(PM_server, "/host/"+FiPMsavename)
     print("Model stored at (after second write):", file_path)
     print(f"Volume Serial Number for {file_path}: {serial_number}")
     print("Data writed successfully.")
 max_acc = 0
-with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: #----------------写入csv文件
+with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: #-csv
     writer = csv.writer(file)
     # Write the header
     writer.writerow(['Global Round', 'Average Loss', 'Accuracy', 'Max Accuracy', 'time'])
@@ -349,22 +286,20 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             CiPMsavename = "TTP/"+f'C{global_round + 1}_PM'
             if os.path.exists('/host/'+CiPMsavename):
                 time.sleep(0.5)
-                ctos_position = torch.load('/host/'+CiPMsavename)#获取位置表  ../ctosfile/14/ctosflmodel.pt
-                ctos_position = decrypt_file(ctos_position, received_key)  #解密server模型位置
+                ctos_position = torch.load('/host/'+CiPMsavename)#get PM  ../ctosfile/14/ctosflmodel.pt
+                ctos_position = decrypt_file(ctos_position, received_key) 
                 print("ctos_position=",ctos_position)
                 A1=ctos_position['serial_number']
                 H2=ctos_position['H2']
                 file_path_Ci=f'C{global_round + 1}'
                 encrypt_Ci,A2=oram.accessread(ctos_position,file_path_Ci)
                 if A1==A2:
-                    #验证地址，地址匹配再解密
-                    data=decrypt_file(encrypt_Ci, received_key)  #解密客户端模型 返回数据
+                    data=decrypt_file(encrypt_Ci, received_key)  
                     H2_Ci=get_model_hash(data)
-                    print("H2_Ci===",H2_Ci)
                 else:
                     raise ValueError("Error! The Ci address does not match.")
 
-                if H2==H2_Ci: # or H2_Ci==H3_Ci
+                if H2==H2_Ci:
                     if config["client"]["fed_algo"] == 'FedAvg':   #FedAvg
                         all_state_dicts = data['all_state_dicts']
                         all_n_data = data['all_n_data']
@@ -390,9 +325,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
                     raise ValueError("Error! The Ci hashvalue does not match.")
             else:
                 time.sleep(0.1)  # wait for 1 second before checking again
-
         for client_id in trainset_config['users']:
-                # Local training
             if config["client"]["fed_algo"] == 'FedAvg':   #FedAvg
                 fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i])
             elif config["client"]["fed_algo"] == 'SCAFFOLD':
@@ -402,25 +335,20 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             elif config["client"]["fed_algo"] == 'FedNova':
                 fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i],all_coeff[i], all_norm_grad[i])
             i=i+1    
-        # Global aggregation  全局聚合
+
         fed_server.select_clients()
         if config["client"]["fed_algo"] == 'FedAvg':
-            global_state_dict, avg_loss, _ = fed_server.agg()   ###需要每次都传输回去  存放的server的信息
+            global_state_dict, avg_loss, _ = fed_server.agg() 
         elif config["client"]["fed_algo"] == 'SCAFFOLD':
             global_state_dict, avg_loss, _, scv_state = fed_server.agg()  # scarffold
         elif config["client"]["fed_algo"] == 'FedProx':
             global_state_dict, avg_loss, _ = fed_server.agg()
         elif config["client"]["fed_algo"] == 'FedNova':
             global_state_dict, avg_loss, _ = fed_server.agg()
-        #print("avg_loss====",avg_loss)
-        
-        # Testing and flushing
         accuracy = fed_server.test()
-        #print("accuracy====",accuracy)   #bug准确率一直没变，模型没更新？loss不降反而增长
         fed_server.flush()
 
         # Record the results
-        # # 测试和记录：每个全局轮次后，测试模型的准确度，并记录相关信息。
         recorder.res['server']['iid_accuracy'].append(accuracy)
         recorder.res['server']['train_loss'].append(avg_loss)
 
@@ -431,9 +359,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             '| Train loss: %.4f ' % avg_loss +
             '| Accuracy: %.4f' % accuracy +
             '| Max Acc: %.4f' % max_acc)
-  
-        #------保存发送到client的模型--------
-        if config["client"]["fed_algo"] == 'FedAvg':    #不同算法  模型参数不同
+        if config["client"]["fed_algo"] == 'FedAvg':
             data_to_save = {
                 'global_state_dict': global_state_dict,
                 }
@@ -442,25 +368,24 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
                 'global_state_dict': global_state_dict,
                 'scv_state':scv_state
                 }
-        elif config["client"]["fed_algo"] == 'FedProx':    #不同算法  模型参数不同
+        elif config["client"]["fed_algo"] == 'FedProx':
             data_to_save = {
                 'global_state_dict': global_state_dict,
                 }
-        elif config["client"]["fed_algo"] == 'FedNova':    #不同算法  模型参数不同
+        elif config["client"]["fed_algo"] == 'FedNova': 
             data_to_save = {
                 'global_state_dict': global_state_dict,
                 }
-        #--------oram保存模型----------
         model_save_directory = '/host/stocfile'  #result
-        if not os.path.exists(model_save_directory):  #  res_root: "results"   ORAM模型保存在results文件夹下
+        if not os.path.exists(model_save_directory):  
             os.makedirs(model_save_directory)
-        oram = WPathORAM(depth=3, storage_dir=model_save_directory) #初始化ORAM
+        oram = WPathORAM(depth=3, storage_dir=model_save_directory) 
         H1=get_model_hash(data_to_save) 
         print("server到client的Fi哈希值=-----",H1)
-        Fi=encrypt_file(data_to_save, key)              #加密
+        Fi=encrypt_file(data_to_save, key) 
         time.sleep(0.2)
         file_path_Fi = f'F{global_round + 2}'
-        position_map = oram.accesswrite(Fi,file_path_Fi)  # 写入数据
+        position_map = oram.accesswrite(Fi,file_path_Fi) 
         print("position_map=",position_map)
         file_path = os.path.join(model_save_directory, str(position_map[file_path_Fi][0]), str(position_map[file_path_Fi][1]))
         print("file_path=",file_path)
@@ -473,10 +398,9 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             }
         positon_to_save=encrypt_file(positon_to_save, key)
         if global_round + 1 > 0:
-            os.remove("/host/TTP/"+f'F{global_round + 1}_PM')       #删除旧版本
-        FiPMsavename = "TTP/"+f'F{global_round + 2}_PM'   #名字必须是+2,因为初始化是1,不然重复了。
-
-        torch.save(positon_to_save, "/host/"+FiPMsavename)  #保存位置
+            os.remove("/host/TTP/"+f'F{global_round + 1}_PM')    
+        FiPMsavename = "TTP/"+f'F{global_round + 2}_PM'  
+        torch.save(positon_to_save, "/host/"+FiPMsavename) 
         print("Model stored at (after second write):", file_path)
         print(f"Volume Serial Number for {file_path}: {serial_number}")
         print("Data writed successfully.")
@@ -484,7 +408,5 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"Program running time: {elapsed_time:.2f} seconds")
-        formatted_elapsed_time = "{:.2f}".format(elapsed_time)#保留两位小数
-        # Save the results 在整个训练过程中，记录服务器端的准确度和训练损失，并保存为pt文件。
-        
+        formatted_elapsed_time = "{:.2f}".format(elapsed_time)
         writer.writerow([global_round, avg_loss, accuracy, max_acc,formatted_elapsed_time])
