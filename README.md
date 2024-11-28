@@ -46,9 +46,9 @@ source activate your-conda-name
 conda install python~=3.8.0 torch~=2.1.0 torchvision~=0.16.0 numpy~=1.21.5 scipy~=1.7.0 Pillow~=9.4.0 matplotlib~=3.4.2 tqdm~=4.61.1 opencv-python~=4.5.3.56 scikit-learn~=0.24.2 colorama~=0.4.4 pykeops~=2.1 pyyaml~=6.0 pycryptodome
 ```
 
-Step 7 copy "occlum_instance1/FLSC“  to /root/demos/python-occlumocclum_instance/
+Step 7  copy "occlum_instance/FLSC“  to /root/demos/python-occlumocclum_instance/
 
-`cp -r ~/demos/pytorchFL1/occlum_instance1/FLSC/ ~/demos/pytorchFL1/occlum_instance/`
+`cp -r ~/demos/pytorchFL1/occlum_instance/FLSC/ ~/demos/pytorchFL1/occlum_instance/`
 
 ## Run Binder
 
@@ -75,6 +75,11 @@ Step 3 Select the federated learning algorithm in the **FLSC\config\test_config.
 
 
 
-
-
 If you encounter  **RuntimeError: Error downloading train-images-idx3-ubyte.gz**   download the **MNIST dataset** from [MNIST handwritten digit database, Yann LeCun, Corinna Cortes and Chris Burges](https://yann.lecun.com/exdb/mnist/)  to the path of **~/demos/pytorchFL1/occlum_instance/FLSC/data** and  **~/demos/pytorchFL1/FLSC/data** 
+
+
+
+## Binder Reloading
+
+We can interrupt the program running SGX by pressing **ctrl+c** and restart SGX by `bash ./run_pytorch_on_occlum.sh`
+
