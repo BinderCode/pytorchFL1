@@ -72,3 +72,9 @@ python fl_client.py
 Step 3 Select the federated learning algorithm in the **FLSC\config\test_config.yaml**
 
 `fed_algo: "FedNova"`
+
+
+
+
+
+If you encounter  **RuntimeError: Error downloading train-images-idx3-ubyte.gz**   download the **MNIST dataset** from [MNIST handwritten digit database, Yann LeCun, Corinna Cortes and Chris Burges](https://yann.lecun.com/exdb/mnist/)  to the path of **~/demos/pytorchFL1/occlum_instance/FLSC/data** and  **~/demos/pytorchFL1/FLSC/data** 
