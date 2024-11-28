@@ -196,7 +196,7 @@ trainset_config, testset = divide_data(num_client=config["system"]["num_client"]
 pbar = tqdm(range(config["system"]["num_round"]))
 current_round, data_to_save, file_path = load_checkpoint()
 if current_round > 0:
-    if config["client"]["fed_algo"] == 'FedAvg' or config["client"]["fed_algo"] == 'FedProx' or config["client"]["fed_algo"] == 'FedNova':
+    if config["client"]["fed_algo"] == 'FedAvg':
         fed_server = FedServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
         fed_server.load_testset(testset)
         fed_server.state_dict().update(data_to_save['global_state_dict'])
@@ -331,7 +331,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             elif config["client"]["fed_algo"] == 'FedProx':
                 fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i])
             elif config["client"]["fed_algo"] == 'FedNova':
-                fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i],all_coeff[i], all_norm_grad[i])
+                fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i])
             i=i+1    
 
         fed_server.select_clients()
