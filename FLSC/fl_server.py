@@ -219,7 +219,6 @@ if current_round > 0:
         data_to_save = {
             'global_state_dict': global_state_dict,
             }
-
     model_save_directory = '/host/stocfile'  #result
     if not os.path.exists(model_save_directory):  #  res_root: "results"  
         os.makedirs(model_save_directory)
