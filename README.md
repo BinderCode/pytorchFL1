@@ -43,7 +43,7 @@ Step 6 Install FL environments in anaconda3
 ```
 conda create -n your-conda-name
 source activate your-conda-name
-conda install torch~=2.1.0 torchvision~=0.16.0 numpy~=1.21.5 scipy~=1.7.0 Pillow~=9.4.0 matplotlib~=3.4.2 tqdm~=4.61.1 opencv-python~=4.5.3.56 scikit-learn~=0.24.2 colorama~=0.4.4 pykeops~=2.1 pyyaml~=6.0 pycryptodome
+conda install python~=3.8.0 torch~=2.1.0 torchvision~=0.16.0 numpy~=1.21.5 scipy~=1.7.0 Pillow~=9.4.0 matplotlib~=3.4.2 tqdm~=4.61.1 opencv-python~=4.5.3.56 scikit-learn~=0.24.2 colorama~=0.4.4 pykeops~=2.1 pyyaml~=6.0 pycryptodome
 ```
 
 Step 7 copy "occlum_instance1/FLSC“  to /root/demos/python-occlumocclum_instance/
