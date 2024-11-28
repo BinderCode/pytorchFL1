@@ -116,7 +116,6 @@ class WPathORAM:
         return data_block, real_block_volume_serial_number
 
 def encrypt_file(data, key):
-
     buffer = io.BytesIO()
     torch.save(data, buffer)
     serialized_data = buffer.getvalue()

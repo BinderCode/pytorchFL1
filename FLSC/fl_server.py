@@ -207,18 +207,12 @@ if current_round > 0:
         fed_server.scv.load_state_dict(data_to_save['scv_state'])
     elif config["client"]["fed_algo"] == 'FedProx':
         fed_server = FedServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
-        fed_server.load_testset(testset)  
-        global_state_dict = fed_server.state_dict()
-        data_to_save = {
-            'global_state_dict': global_state_dict,
-            }
+        fed_server.load_testset(testset)       
+        fed_server.state_dict().update(data_to_save['global_state_dict'])
     elif config["client"]["fed_algo"] == 'FedNova':
         fed_server = FedNovaServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
-        fed_server.load_testset(testset)
-        global_state_dict = fed_server.state_dict()
-        data_to_save = {
-            'global_state_dict': global_state_dict,
-            }
+        fed_server.load_testset(testset)    
+        fed_server.state_dict().update(data_to_save['global_state_dict'])
     model_save_directory = '/host/stocfile'  #result
     if not os.path.exists(model_save_directory):  #  res_root: "results"  
         os.makedirs(model_save_directory)
