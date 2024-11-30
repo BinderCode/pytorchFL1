@@ -23,8 +23,8 @@ from Crypto.Util.Padding import unpad
 class TreeNode:
     def __init__(self):
         self.blocks = [None] * 4
-class WPathORAM:
-    def __init__(self, depth, storage_dir,):
+class WRPathORAM:
+    def __init__(self, depth, storage_dir):
         self.depth = depth 
         self.tree_size = 2 ** (depth + 1) - 1
         self.tree = [TreeNode() for _ in range(self.tree_size)]
@@ -191,7 +191,7 @@ def fed_run():
     model_save_directory = '../ctosfile'
     if not os.path.exists(model_save_directory):  #  res_root: "results"
         os.makedirs(model_save_directory)
-    oram = WPathORAM(depth=3, storage_dir=model_save_directory)
+    oram = WRPathORAM(depth=3, storage_dir=model_save_directory)
 
     for global_round in pbar:
         all_state_dicts = []

@@ -27,7 +27,7 @@ import torch
 class TreeNode:
     def __init__(self):
         self.blocks = [None] * 4  
-class WPathORAM:
+class WRPathORAM:
     def __init__(self, depth, storage_dir):
         self.depth = depth  
         self.tree_size = 2 ** (depth + 1) - 1 
@@ -216,7 +216,7 @@ if current_round > 0:
     model_save_directory = '/host/stocfile'  #result
     if not os.path.exists(model_save_directory):  #  res_root: "results"  
         os.makedirs(model_save_directory)
-    oram = WPathORAM(depth=3, storage_dir=model_save_directory) #init ORAM
+    oram = WRPathORAM(depth=3, storage_dir=model_save_directory) #init ORAM
 else:    
     if config["client"]["fed_algo"] == 'FedAvg':
         fed_server = FedServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
@@ -252,7 +252,7 @@ else:
     model_save_directory = '/host/stocfile'  #result
     if not os.path.exists(model_save_directory):  
         os.makedirs(model_save_directory)
-    oram = WPathORAM(depth=3, storage_dir=model_save_directory)
+    oram = WRPathORAM(depth=3, storage_dir=model_save_directory)
     H1=get_model_hash(data_to_save)   
     Fi=encrypt_file(data_to_save, key)         
     time.sleep(0.1)
@@ -377,7 +377,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
         model_save_directory = '/host/stocfile'  #result
         if not os.path.exists(model_save_directory):  
             os.makedirs(model_save_directory)
-        oram = WPathORAM(depth=3, storage_dir=model_save_directory) 
+        oram = WRPathORAM(depth=3, storage_dir=model_save_directory) 
         H1=get_model_hash(data_to_save) 
         Fi=encrypt_file(data_to_save, key) 
         time.sleep(0.2)
