@@ -15,7 +15,6 @@ import time
 import random
 import shutil
 import csv
-import time
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from Crypto.Util.Padding import unpad
@@ -255,7 +254,7 @@ else:
     oram = WRPathORAM(depth=3, storage_dir=model_save_directory)
     H1=get_model_hash(data_to_save)   
     Fi=encrypt_file(data_to_save, key)         
-    time.sleep(0.1)
+    #time.sleep(0.1)
     file_path_Fi = f'F{current_round+1}'
     position_map = oram.accesswrite(Fi,file_path_Fi) 
     file_path = os.path.join(model_save_directory, str(position_map[file_path_Fi][0]), str(position_map[file_path_Fi][1]))
@@ -380,7 +379,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
         oram = WRPathORAM(depth=3, storage_dir=model_save_directory) 
         H1=get_model_hash(data_to_save) 
         Fi=encrypt_file(data_to_save, key) 
-        time.sleep(0.2)
+        #time.sleep(0.2)
         file_path_Fi = f'F{global_round + 2}'
         position_map = oram.accesswrite(Fi,file_path_Fi) 
         file_path = os.path.join(model_save_directory, str(position_map[file_path_Fi][0]), str(position_map[file_path_Fi][1]))
