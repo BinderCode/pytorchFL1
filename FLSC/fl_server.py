@@ -154,12 +154,12 @@ def get_volume_serial_number(path):
     volume_info = os.stat(path)
     return volume_info.st_dev+volume_info.st_ino  
 def load_checkpoint():  #SGX reload
-    files = [f for f in os.listdir('/host/TTP/') if f.startswith('F') and f.endswith('_PM')] 
+    files = [f for f in os.listdir('/host/clientfile/') if f.startswith('F') and f.endswith('_PM')] 
     if not files:
         return 0, None, None  
     latest_file = sorted(files, key=lambda x: int(x[1:].split('_')[0]), reverse=True)[0]
     global_round = int(latest_file[1:].split('_')[0]) -1 
-    PM_server = torch.load(os.path.join('/host/TTP/', latest_file))     
+    PM_server = torch.load(os.path.join('/host/clientfile/', latest_file))     
     PM_server = decrypt_file(PM_server, key)
     file_path = PM_server['file_path']  
     fi_files = [f for f in os.listdir(file_path) if f.startswith('F')]
@@ -265,9 +265,9 @@ else:
         'H1':H1
         }
     PM_server=encrypt_file(positon_to_save, key)
-    if not os.path.exists("/host/TTP"): 
-        os.makedirs("/host/TTP")
-    FiPMsavename = "TTP/"+f'F{current_round+1}_PM'
+    if not os.path.exists("/host/clientfile"): 
+        os.makedirs("/host/clientfile")
+    FiPMsavename = "clientfile/"+f'F{current_round+1}_PM'
     torch.save(PM_server, "/host/"+FiPMsavename)
     print("Model stored at (after second write):", file_path)
     print(f"Volume Serial Number for {file_path}: {serial_number}")
@@ -281,7 +281,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
         i=0
         start_time = time.time()
         while True:
-            CiPMsavename = "TTP/"+f'C{global_round + 1}_PM'
+            CiPMsavename = "clientfile/"+f'C{global_round + 1}_PM'
             if os.path.exists('/host/'+CiPMsavename):
                 time.sleep(0.5)
                 ctos_position = torch.load('/host/'+CiPMsavename)#get PM 
@@ -392,8 +392,8 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             }
         positon_to_save=encrypt_file(positon_to_save, key)
         if global_round + 1 > 0:
-            os.remove("/host/TTP/"+f'F{global_round + 1}_PM')    
-        FiPMsavename = "TTP/"+f'F{global_round + 2}_PM'  
+            os.remove("/host/clientfile/"+f'F{global_round + 1}_PM')    
+        FiPMsavename = "clientfile/"+f'F{global_round + 2}_PM'  
         torch.save(positon_to_save, "/host/"+FiPMsavename) 
         print("Model stored at (after second write):", file_path)
         print(f"Volume Serial Number for {file_path}: {serial_number}")

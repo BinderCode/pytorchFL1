@@ -202,7 +202,7 @@ def fed_run():
         all_coeff=[]
         all_norm_grad=[]
         while True:
-            FiPMsavename = "TTP/"+f'F{global_round + 1}_PM'
+            FiPMsavename = "serverfile/"+f'F{global_round + 1}_PM'
             if os.path.exists('../'+FiPMsavename):
                 time.sleep(0.1)
                 stoc_position1= torch.load('../'+FiPMsavename)
@@ -305,8 +305,8 @@ def fed_run():
         PM_client=encrypt_file(positon_to_save, key) 
         time.sleep(1)
         if global_round > 0:
-            os.remove("../TTP/"+f'C{global_round}_PM') 
-        CiPMsavename = 'TTP/'+f'C{global_round + 1}_PM'
+            os.remove("../serverfile/"+f'C{global_round}_PM') 
+        CiPMsavename = 'serverfile/'+f'C{global_round + 1}_PM'
         torch.save(PM_client, "../"+CiPMsavename) 
         print("Model stored at (after second write):", file_path)
         print(f"Volume Serial Number for {file_path}: {serial_number}")
