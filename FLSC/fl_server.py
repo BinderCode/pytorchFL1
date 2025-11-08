@@ -15,6 +15,7 @@ import time
 import random
 import shutil
 import csv
+import time
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 from Crypto.Util.Padding import unpad
@@ -23,6 +24,7 @@ import hashlib
 os.chdir(sys.path[0])
 import torch
 
+oramk=4 #ORAM tree depth
 class TreeNode:
     def __init__(self):
         self.blocks = [None] * 4  
@@ -147,24 +149,27 @@ def decrypt_file(input_data, key):#AES decrypt
     decrypted_data = unpad(cipher.decrypt(encrypted_content), AES.block_size)
     buffer = io.BytesIO(decrypted_data)
     return torch.load(buffer, map_location=torch.device('cpu'))
+    
 
 key = b'v \xf35$\x90{\xbd-\xa2v\xc3\xbf\xb0\xf3\xa3' #key
 received_key = b'v \xf35$\x90{\xbd-\xa2v\xc3\xbf\xb0\xf3\xa3'  
 def get_volume_serial_number(path):
     volume_info = os.stat(path)
     return volume_info.st_dev+volume_info.st_ino  
-def load_checkpoint():  #SGX reload
-    files = [f for f in os.listdir('/host/clientfile/') if f.startswith('F') and f.endswith('_PM')] 
+def load_checkpoint(): 
+    if not os.path.exists("/host/toserverfile"): #PM to client save path 
+        os.makedirs("/host/toserverfile")
+    files = [f for f in os.listdir('/host/toserverfile/') if f.startswith('F') and f.endswith('_PM')] 
     if not files:
-        return 0, None, None  
+        return 0, None, None
     latest_file = sorted(files, key=lambda x: int(x[1:].split('_')[0]), reverse=True)[0]
     global_round = int(latest_file[1:].split('_')[0]) -1 
-    PM_server = torch.load(os.path.join('/host/clientfile/', latest_file))     
+    PM_server = torch.load(os.path.join('/host/toserverfile/', latest_file))
     PM_server = decrypt_file(PM_server, key)
-    file_path = PM_server['file_path']  
+    file_path = PM_server['file_path']
     fi_files = [f for f in os.listdir(file_path) if f.startswith('F')]
     if not fi_files:
-        return 0, None, None  
+        return 0, None, None
     fi_file_path = os.path.join(file_path, fi_files[0])
     with open(fi_file_path, 'rb') as f:
         Fi = f.read()
@@ -194,6 +199,7 @@ trainset_config, testset = divide_data(num_client=config["system"]["num_client"]
                                         i_seed=config["system"]["i_seed"])   
 pbar = tqdm(range(config["system"]["num_round"]))
 current_round, data_to_save, file_path = load_checkpoint()
+print("Resuming from round:", current_round)
 if current_round > 0:
     if config["client"]["fed_algo"] == 'FedAvg':
         fed_server = FedServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
@@ -215,7 +221,7 @@ if current_round > 0:
     model_save_directory = '/host/stocfile'  #result
     if not os.path.exists(model_save_directory):  #  res_root: "results"  
         os.makedirs(model_save_directory)
-    oram = WRPathORAM(depth=3, storage_dir=model_save_directory) #init ORAM
+    oram = WRPathORAM(depth=oramk, storage_dir=model_save_directory) #init ORAM
 else:    
     if config["client"]["fed_algo"] == 'FedAvg':
         fed_server = FedServer(trainset_config['users'], dataset_id=config["system"]["dataset"], model_name=config["system"]["model"])
@@ -251,24 +257,32 @@ else:
     model_save_directory = '/host/stocfile'  #result
     if not os.path.exists(model_save_directory):  
         os.makedirs(model_save_directory)
-    oram = WRPathORAM(depth=3, storage_dir=model_save_directory)
+    
+    oram = WRPathORAM(depth=oramk, storage_dir=model_save_directory)
     H1=get_model_hash(data_to_save)   
     Fi=encrypt_file(data_to_save, key)         
-    #time.sleep(0.1)
+    time.sleep(0.1)
     file_path_Fi = f'F{current_round+1}'
     position_map = oram.accesswrite(Fi,file_path_Fi) 
     file_path = os.path.join(model_save_directory, str(position_map[file_path_Fi][0]), str(position_map[file_path_Fi][1]))
     serial_number = get_volume_serial_number(os.path.join(file_path,str(os.listdir(file_path)[0])))
+    #测试写入时间-------
+    starttime=time.time()
     positon_to_save = {
         'file_path': file_path,
         'serial_number':serial_number,
         'H1':H1
         }
     PM_server=encrypt_file(positon_to_save, key)
-    if not os.path.exists("/host/clientfile"): 
-        os.makedirs("/host/clientfile")
-    FiPMsavename = "clientfile/"+f'F{current_round+1}_PM'
+    if not os.path.exists("/host/toclientfile"): #PM to client save path 
+        os.makedirs("/host/toclientfile")
+    FiPMsavename = "toclientfile/"+f'F{current_round+1}_PM'
     torch.save(PM_server, "/host/"+FiPMsavename)
+    end_time = time.time()
+    write_time = end_time - starttime
+    print(f"Write time: {write_time:.4f} seconds")
+
+
     print("Model stored at (after second write):", file_path)
     print(f"Volume Serial Number for {file_path}: {serial_number}")
     print("Data writed successfully.")
@@ -281,9 +295,9 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
         i=0
         start_time = time.time()
         while True:
-            CiPMsavename = "clientfile/"+f'C{global_round + 1}_PM'
+            CiPMsavename = "toserverfile/"+f'C{global_round + 1}_PM'  
             if os.path.exists('/host/'+CiPMsavename):
-                time.sleep(0.5)
+                time.sleep(0.1)
                 ctos_position = torch.load('/host/'+CiPMsavename)#get PM 
                 ctos_position = decrypt_file(ctos_position, received_key) 
                 A1=ctos_position['serial_number']
@@ -331,7 +345,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
                 fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i])
             elif config["client"]["fed_algo"] == 'FedNova':
                 fed_server.rec(client_id, all_state_dicts[i], all_n_data[i], all_losses[i], all_coeff[i], all_norm_grad[i])
-            i=i+1    
+            i=i+1
 
         fed_server.select_clients()
         if config["client"]["fed_algo"] == 'FedAvg':
@@ -376,7 +390,7 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
         model_save_directory = '/host/stocfile'  #result
         if not os.path.exists(model_save_directory):  
             os.makedirs(model_save_directory)
-        oram = WRPathORAM(depth=3, storage_dir=model_save_directory) 
+        oram = WRPathORAM(depth=oramk, storage_dir=model_save_directory) 
         H1=get_model_hash(data_to_save) 
         Fi=encrypt_file(data_to_save, key) 
         #time.sleep(0.2)
@@ -392,8 +406,8 @@ with open('/host/'+config["system"]["csv_file"], mode='w', newline='') as file: 
             }
         positon_to_save=encrypt_file(positon_to_save, key)
         if global_round + 1 > 0:
-            os.remove("/host/clientfile/"+f'F{global_round + 1}_PM')    
-        FiPMsavename = "clientfile/"+f'F{global_round + 2}_PM'  
+            os.remove("/host/toclientfile/"+f'F{global_round + 1}_PM')   
+        FiPMsavename = "toclientfile/"+f'F{global_round + 2}_PM'
         torch.save(positon_to_save, "/host/"+FiPMsavename) 
         print("Model stored at (after second write):", file_path)
         print(f"Volume Serial Number for {file_path}: {serial_number}")

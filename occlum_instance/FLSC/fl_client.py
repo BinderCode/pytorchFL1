@@ -83,7 +83,6 @@ class WRPathORAM:
         return self.position_map
 
     def accessread(self, position_map, filename):
-
         if filename.startswith('C'):
             storage_dir = '../ctosfile'
         elif filename.startswith('F'):
@@ -175,7 +174,7 @@ def fed_run():
     random.seed(config["system"]["i_seed"])
     client_dict = {}
     trainset_config, testset = divide_data(num_client=config["system"]["num_client"], num_local_class=config["system"]["num_local_class"], dataset_name=config["system"]["dataset"],
-                                           i_seed=config["system"]["i_seed"])   
+                                           i_seed=config["system"]["i_seed"])
 
     for client_id in trainset_config['users']:
         if config["client"]["fed_algo"] == 'FedAvg':
@@ -191,10 +190,10 @@ def fed_run():
     model_save_directory = '../ctosfile'
     if not os.path.exists(model_save_directory):  #  res_root: "results"
         os.makedirs(model_save_directory)
-    oram = WRPathORAM(depth=3, storage_dir=model_save_directory)
+    oram = WRPathORAM(depth=4, storage_dir=model_save_directory)
 
     for global_round in pbar:
-        all_state_dicts = []
+        all_state_dicts = [] 
         all_n_data = []
         all_losses = []
         all_delta_ccv_state=[]
@@ -202,9 +201,11 @@ def fed_run():
         all_coeff=[]
         all_norm_grad=[]
         while True:
-            FiPMsavename = "serverfile/"+f'F{global_round + 1}_PM'
+            FiPMsavename = "toclientfile/"+f'F{global_round + 1}_PM'  #read from server
             if os.path.exists('../'+FiPMsavename):
                 time.sleep(0.1)
+                #-----------calculate time--------
+                starttime=time.time()
                 stoc_position1= torch.load('../'+FiPMsavename)
                 stoc_position=decrypt_file(stoc_position1, received_key)
                 A1=stoc_position['serial_number']
@@ -230,6 +231,9 @@ def fed_run():
                     break
                 else:
                     raise ValueError("Error! The Fi hashvalue does not match.")
+                end_time = time.time()
+                read_time = end_time - starttime
+                print(f"read time is----: {read_time:.4f} seconds")
             else:
                 time.sleep(0.1)  # wait for 1 second before checking again
             
@@ -305,8 +309,8 @@ def fed_run():
         PM_client=encrypt_file(positon_to_save, key) 
         time.sleep(1)
         if global_round > 0:
-            os.remove("../serverfile/"+f'C{global_round}_PM') 
-        CiPMsavename = 'serverfile/'+f'C{global_round + 1}_PM'
+            os.remove("../toserverfile/"+f'C{global_round}_PM')   #delete old version Ci_PM
+        CiPMsavename = 'toserverfile/'+f'C{global_round + 1}_PM'  
         torch.save(PM_client, "../"+CiPMsavename) 
         print("Model stored at (after second write):", file_path)
         print(f"Volume Serial Number for {file_path}: {serial_number}")
@@ -318,11 +322,4 @@ if __name__ == "__main__":
     fed_run()
     end_time = time.time()
     elapsed_time = end_time - start_time
-    print(f"Program running time: {elapsed_time:.2f} seconds")
-
-
-
-
-
-
-
+    print(f"Program running time: {elapsed_time:.2f} seconds")4 V
